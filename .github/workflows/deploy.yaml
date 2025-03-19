@@ -19,6 +19,17 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
+            if ! command -v node &> /dev/null
+            then
+              curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+              sudo apt-get install -y nodejs
+            fi
+
+            if ! command -v pm2 &> /dev/null
+            then
+              sudo npm install -g pm2
+            fi
+
             cd /home/${{ secrets.SERVER_USER }}/Projects
 
             if [ ! -d "sharefy" ]; then
@@ -40,5 +51,5 @@ jobs:
             EOL
 
             pm2 stop sharefy || true
-            pm2 start app/server/server.js --name sharefy
-            pm2 save  # Restartdan keyin ham ishlashi uchun
+            pm2 start dist/server/server.js --name sharefy
+            pm2 save
