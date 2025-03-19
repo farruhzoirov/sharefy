@@ -1,16 +1,17 @@
 {
   "name": "sharefy",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "Sharefy npm package",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "author": "Farruh Zoirov",
+  "main": "app/tunnel/index.js",
+  "types": "app/tunnel/index.d.ts",
   "bin": {
     "sharefy": "./dist/bin/cli.js"
   },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts"
+    "dev": "nodemon"
   },
   "keywords": [
     "tunnel",
@@ -19,15 +20,16 @@
     "websocket"
   ],
   "dependencies": {
-    "ws": "^8.13.0",
-    "express": "^4.18.2",
-    "commander": "^11.0.0",
-    "chalk": "^4.1.2",
     "axios": "^1.5.0",
+    "chalk": "^4.1.2",
+    "commander": "^11.0.0",
+    "express": "^4.18.2",
     "http-proxy": "^1.18.1",
-    "uuid": "^9.0.0",
+    "sharefy": "^1.0.0",
     "socket.io": "^4.7.2",
-    "socket.io-client": "^4.7.2"
+    "socket.io-client": "^4.7.2",
+    "uuid": "^9.0.0",
+    "ws": "^8.13.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.17",
@@ -35,6 +37,7 @@
     "@types/node": "^18.15.0",
     "@types/uuid": "^9.0.2",
     "@types/ws": "^8.5.5",
+    "nodemon": "^3.1.9",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.4"
   }

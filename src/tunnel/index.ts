@@ -1,4 +1,3 @@
-// src/index.ts
 import express from "express";
 import http from "http";
 import WebSocket from "ws";
@@ -29,18 +28,16 @@ class NodeTunnel {
       subdomain: options.subdomain || uuidv4().substring(0, 8),
       serveStatic: options.serveStatic || false,
       staticPath: options.staticPath || "./public",
-      tunnelServer: options.tunnelServer || "https://your-tunnel-server.com",
+      tunnelServer: options.tunnelServer || "http://localhost:8080",
     };
   }
 
   public async start(): Promise<NodeTunnel> {
-    console.log(chalk.blue("Node Tunnel boshlanyapti..."));
+    console.log(chalk.blue("Node Tunnel is opening..."));
 
     try {
-      // Local proxy server yaratish
       const proxy = httpProxy.createProxyServer({});
 
-      // Agar static files server qilish kerak bo'lsa
       const app = express();
       if (this.options.serveStatic) {
         console.log(
@@ -51,11 +48,9 @@ class NodeTunnel {
         app.use(express.static(this.options.staticPath as string));
       }
 
-      // HTTP serverini yaratish
       this.localServer = http.createServer((req, res) => {
         if (this.options.serveStatic) {
           const urlPath = req.url || "/";
-          // Express orqali static fayllarni tekshirish
           const staticFilePath = path.join(
             this.options.staticPath as string,
             urlPath === "/" ? "index.html" : urlPath
@@ -66,14 +61,13 @@ class NodeTunnel {
           }
         }
 
-        // Aks holda local serverga yo'naltirish
         proxy.web(
           req,
           res,
           { target: `http://localhost:${this.options.port}` },
           (err) => {
             if (err) {
-              console.error(chalk.red("Proxy xatosi:"), err);
+              console.error(chalk.red("Proxy error:"), err);
               res.statusCode = 502;
               res.end("Proxy error: " + err.message);
             }
@@ -81,7 +75,6 @@ class NodeTunnel {
         );
       });
 
-      // WebSocket serverini yaratish
       const wss = new WebSocket.Server({ server: this.localServer });
       wss.on("connection", (ws) => {
         ws.on("message", (message) => {
@@ -90,15 +83,13 @@ class NodeTunnel {
         });
       });
 
-      // Tunnel serveriga ulanish
       await this.connectToTunnelServer();
 
-      // Local serverni 0-portda ishga tushirish (dinamik ravishda)
       this.localServer.listen(0, () => {
         const address = this.localServer?.address();
         if (address && typeof address !== "string") {
           const port = address.port;
-          console.log(chalk.green(`Local server ${port} portida ishlayapti`));
+          console.log(chalk.green(`Local server is running on port ${port}`));
         }
       });
 
@@ -111,11 +102,13 @@ class NodeTunnel {
 
   private async connectToTunnelServer(): Promise<string> {
     console.log(
-      chalk.blue(`Tunnel serveriga ulanilmoqda: ${this.options.tunnelServer}`)
+      chalk.blue(
+        `Connecting to the tunnel server: ${this.options.tunnelServer}`
+      )
     );
 
     try {
-      // Subdomain registratsiya qilish
+      //  -------   Registering subdomain ---------
       const registration = await axios.post<RegistrationResponse>(
         `${this.options.tunnelServer}/register`,
         {
@@ -126,7 +119,7 @@ class NodeTunnel {
       this.tunnelUrl = registration.data.url;
       console.log(chalk.green(`Tunnel URL: ${this.tunnelUrl}`));
 
-      // Socket.io orqali tunnel serveriga ulanish
+      // --------- Connecting  Tunnel server by socket.io --------
       this.socket = io(this.options.tunnelServer as string, {
         query: {
           token: registration.data.token,
@@ -135,18 +128,18 @@ class NodeTunnel {
       });
 
       this.socket.on("connect", () => {
-        console.log(chalk.green("Tunnel serveriga ulandi"));
+        console.log(chalk.green("Connected tunnel server"));
         this.connected = true;
       });
 
       this.socket.on("disconnect", () => {
-        console.log(chalk.yellow("Tunnel serveridan uzildi"));
+        console.log(chalk.yellow("Disconnected tunnel server"));
         this.connected = false;
 
-        // Qayta ulanish
+        // Reconnecting
         setTimeout(() => {
           if (!this.connected && this.socket) {
-            console.log(chalk.blue("Qayta ulanish..."));
+            console.log(chalk.blue("Reconnecting..."));
             this.socket.connect();
           }
         }, 5000);
@@ -154,7 +147,6 @@ class NodeTunnel {
 
       this.socket.on("request", async (requestData: TunnelRequest) => {
         try {
-          // Tunnel serveridan kelgan so'rovni local serverga yo'naltirish
           const { method, path, headers, body } = requestData;
 
           const response = await axios({
@@ -165,7 +157,6 @@ class NodeTunnel {
             responseType: "arraybuffer",
           });
 
-          // Javobni tunnel serveriga qaytarish
           this.socket?.emit("response", {
             id: requestData.id,
             status: response.status,
@@ -173,7 +164,7 @@ class NodeTunnel {
             body: response.data,
           } as TunnelResponse);
         } catch (error: any) {
-          console.error(chalk.red("So'rovni yo'naltirishda xatolik:"), error);
+          console.error(chalk.red("Error redirecting request:"), error.message);
           this.socket?.emit("response", {
             id: requestData.id,
             status: error.response?.status || 500,
@@ -185,13 +176,13 @@ class NodeTunnel {
 
       return this.tunnelUrl;
     } catch (error) {
-      console.error(chalk.red("Tunnel serveriga ulanishda xatolik:"), error);
+      console.error(chalk.red("Error connecting to the tunnel server:"), error);
       throw error;
     }
   }
 
   public stop(): void {
-    console.log(chalk.blue("Node Tunnel to'xtatilmoqda..."));
+    console.log(chalk.blue("Sharefy Tunnel is stopping..."));
 
     if (this.socket) {
       this.socket.disconnect();
@@ -201,7 +192,7 @@ class NodeTunnel {
       this.localServer.close();
     }
 
-    console.log(chalk.green("Node Tunnel to'xtatildi"));
+    console.log(chalk.green("Sharefy Tunnel stopped"));
   }
 
   public getUrl(): string {

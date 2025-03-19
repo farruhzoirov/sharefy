@@ -1,4 +1,3 @@
-// src/server.ts
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
@@ -11,34 +10,29 @@ const io = new Server(server);
 
 app.use(express.json());
 
-// Subdomain va token ma'lumotlarini saqlash
 const clients = new Map<string, ClientInfo>();
 
-// HTTP so'rovlarni kutish uchun Map
 const pendingRequests = new Map<string, PendingRequest>();
 
-// Subdomain registratsiya
 app.post("/register", (req, res) => {
   const { subdomain } = req.body;
   const requestedSubdomain = subdomain || uuidv4().substring(0, 8);
 
-  // Subdomain band qilinganligini tekshirish
   if (clients.has(requestedSubdomain)) {
-    return res.status(400).json({ error: "Bu subdomain band qilingan" });
+    return res
+      .status(400)
+      .json({ error: "This subdomain is already reserved" });
   }
 
-  // Yangi token yaratish
   const token = uuidv4();
 
-  // Client ma'lumotlarini saqlash
   clients.set(requestedSubdomain, {
     token,
     socket: null,
     createdAt: new Date(),
   });
 
-  // URL generatsiya qilish
-  const url = `https://${requestedSubdomain}.your-tunnel-domain.com`;
+  const url = `http://localhost:8080/${requestedSubdomain}`;
 
   res.json({
     success: true,
@@ -48,7 +42,6 @@ app.post("/register", (req, res) => {
   });
 });
 
-// Subdomain tekshirish
 app.get("/check/:subdomain", (req, res) => {
   const { subdomain } = req.params;
 
@@ -59,7 +52,6 @@ app.get("/check/:subdomain", (req, res) => {
   res.json({ available: true });
 });
 
-// Socket.io ulanishlarini boshqarish
 io.on("connection", (socket) => {
   const { token, subdomain } = socket.handshake.query;
 
@@ -68,18 +60,17 @@ io.on("connection", (socket) => {
     return;
   }
 
-  // Tokenni tekshirish
   const client = clients.get(subdomain);
   if (!client || client.token !== token) {
     socket.disconnect();
     return;
   }
 
-  console.log(`Client ulandi: ${subdomain}`);
+  console.log(`Client connected: ${subdomain}`);
   client.socket = socket as any;
 
   socket.on("disconnect", () => {
-    console.log(`Client uzildi: ${subdomain}`);
+    console.log(`Client disconnected: ${subdomain}`);
     if (clients.has(subdomain)) {
       const client = clients.get(subdomain);
       if (client) {
@@ -89,45 +80,35 @@ io.on("connection", (socket) => {
   });
 
   socket.on("response", (responseData) => {
-    // Javobni kutayotgan HTTP so'roviga yo'naltirish
     const pendingRequest = pendingRequests.get(responseData.id);
     if (pendingRequest) {
       const { res } = pendingRequest;
 
-      // HTTP headerlari va statusni o'rnatish
       res.status(responseData.status);
       Object.entries(responseData.headers).forEach(([key, value]) => {
-        // Content-Length o'zimiz qo'yamiz
         if (key.toLowerCase() !== "content-length") {
           res.setHeader(key, value);
         }
       });
 
-      // Javobni qaytarish
       res.end(responseData.body);
-
-      // So'rovni o'chirish
       pendingRequests.delete(responseData.id);
     }
   });
 });
 
-// Barcha kelayotgan so'rovlarni ushlab, subdomain bo'yicha yo'naltirish
 app.use((req, res) => {
-  // Hostni olish va subdomain ajratish
-  const host = req.headers.host || "";
-  const subdomain = host.split(".")[0];
-
-  // Client mavjudligini tekshirish
+  const host = req.url || "";
+  const subdomain = host.split("/")[1];
   const client = clients.get(subdomain);
+
   if (!client || !client.socket) {
-    return res.status(404).send("Tunnel topilmadi yoki offline");
+    return res
+      .status(404)
+      .send("Tunnel not found or disconnected from public server");
   }
 
-  // So'rov ID generatsiya qilish
   const requestId = uuidv4();
-
-  // Raw body olish uchun array
   const chunks: Buffer[] = [];
 
   req.on("data", (chunk: Buffer) => {
@@ -136,24 +117,20 @@ app.use((req, res) => {
 
   req.on("end", () => {
     const body = Buffer.concat(chunks);
-
-    // So'rovni saqlab qo'yish
     pendingRequests.set(requestId, {
       req,
       res,
       timestamp: Date.now(),
     });
 
-    // Socket orqali so'rovni yuborish
     client.socket?.emit("request", {
       id: requestId,
       method: req.method,
-      path: req.url,
+      path: req.url.replace(`/${subdomain}`, ""),
       headers: req.headers,
       body: body.length > 0 ? body : null,
     });
 
-    // Timeout o'rnatish (30 sekund)
     setTimeout(() => {
       if (pendingRequests.has(requestId)) {
         res.status(504).send("Gateway Timeout");
@@ -163,17 +140,14 @@ app.use((req, res) => {
   });
 });
 
-// Serverga quloq solish
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
   console.log(`Tunnel server ${PORT} portida ishlamoqda`);
 });
 
-// Stale pendingRequests va clients larni tozalash
 setInterval(() => {
   const now = Date.now();
 
-  // Timed out pendingRequests larni tozalash
   pendingRequests.forEach((request, id) => {
     if (now - request.timestamp > 30000) {
       request.res.status(504).send("Gateway Timeout");
@@ -181,7 +155,7 @@ setInterval(() => {
     }
   });
 
-  // Inaktiv clientlarni tozalash (24 soatdan ortiq inaktiv)
+  // Cleaning inactive clients (more than 24 hours)
   clients.forEach((client, subdomain) => {
     const createdAt = client.createdAt.getTime();
     if (now - createdAt > 24 * 60 * 60 * 1000 && !client.socket) {

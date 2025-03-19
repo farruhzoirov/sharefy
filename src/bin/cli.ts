@@ -1,12 +1,10 @@
 #!/usr/bin/env node
-// src/bin/cli.ts
 import { Command } from "commander";
 import chalk from "chalk";
 import NodeTunnel from "../tunnel/index";
 import { readFileSync } from "fs";
 import path from "path";
 
-// package.json o'qish
 const packageJsonPath = path.join(__dirname, "../../package.json");
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
 
@@ -14,16 +12,14 @@ const program = new Command();
 
 program
   .version(packageJson.version)
-  .description("Local serveringizni internet orqali public qiluvchi tunnel")
-  .option("-p, --port <number>", "Local server porti", "8000")
-  .option("-s, --subdomain <string>", "Maxsus subdomain nomi (ixtiyoriy)")
-  .option("-d, --directory <path>", "Static fayllar papkasi", "./public")
-  .option("--static", "Static fayllarni xizmat qilish", false)
-  .option(
-    "--server <url>",
-    "Tunnel server URL",
-    "https://your-tunnel-server.com"
+  .description(
+    "A tunnel that makes your local server publicly accessible via the internet"
   )
+  .option("-p, --port <number>", "Local server port", "8000")
+  .option("-s, --subdomain <string>", "Custom subdomain name (optional)")
+  .option("-d, --directory <path>", "Directory for static files", "./public")
+  .option("--static", "Serve static files", false)
+  .option("--server <url>", "Tunnel server URL", "http://localhost:8080")
   .action(async (options) => {
     console.log(chalk.blue("🚇 Node Tunnel - v" + packageJson.version));
     console.log(chalk.yellow(`Local server: http://localhost:${options.port}`));
@@ -39,17 +35,13 @@ program
 
       await tunnel.start();
 
-      // CTRL+C ni tutib olish
       process.on("SIGINT", () => {
-        console.log(chalk.yellow("\nCTRL+C bosildi. Tunnel to'xtatilmoqda..."));
+        console.log(chalk.yellow("\nCTRL+C. Tunnel is stopping..."));
         tunnel.stop();
         process.exit(0);
       });
     } catch (error: any) {
-      console.error(
-        chalk.red("Tunnel ishga tushirishda xatolik:"),
-        error.message
-      );
+      console.error(chalk.red("Error running tunnel:"), error.message);
       process.exit(1);
     }
   });
