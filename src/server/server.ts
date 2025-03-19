@@ -11,7 +11,6 @@ const io = new Server(server);
 app.use(express.json());
 
 const clients = new Map<string, ClientInfo>();
-
 const pendingRequests = new Map<string, PendingRequest>();
 
 app.post("/register", (req, res) => {

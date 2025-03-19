@@ -2,6 +2,7 @@ node_modules/
 src/
 dist/
 app/server/
+.github/
 package-lock.json
 nodemon.json
 README.md

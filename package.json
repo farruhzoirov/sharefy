@@ -1,16 +1,16 @@
 {
   "name": "sharefy",
-  "version": "1.0.4",
+  "version": "1.0.7",
   "description": "Sharefy npm package",
   "author": "Farruh Zoirov",
   "main": "app/tunnel/index.js",
   "types": "app/tunnel/index.d.ts",
   "bin": {
-    "sharefy": "./dist/bin/cli.js"
+    "sharefy": "./app/bin/cli.js"
   },
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "node app/index.js",
     "dev": "nodemon"
   },
   "keywords": [

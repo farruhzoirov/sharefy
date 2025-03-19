@@ -67,7 +67,7 @@ class NodeTunnel {
           { target: `http://localhost:${this.options.port}` },
           (err) => {
             if (err) {
-              console.error(chalk.red("Proxy error:"), err);
+              console.error(chalk.red("Proxy error:"));
               res.statusCode = 502;
               res.end("Proxy error: " + err.message);
             }
@@ -75,13 +75,13 @@ class NodeTunnel {
         );
       });
 
-      const wss = new WebSocket.Server({ server: this.localServer });
-      wss.on("connection", (ws) => {
-        ws.on("message", (message) => {
-          // WebSocket xabarlarini ham local serverga yo'naltirish
-          // Bu qismni implement qilish kerak
-        });
-      });
+      // const wss = new WebSocket.Server({ server: this.localServer });
+      // wss.on("connection", (ws) => {
+      //   ws.on("message", (message) => {
+      //     // WebSocket xabarlarini ham local serverga yo'naltirish
+      //     // Bu qismni implement qilish kerak
+      //   });
+      // });
 
       await this.connectToTunnelServer();
 
@@ -95,7 +95,7 @@ class NodeTunnel {
 
       return this;
     } catch (error) {
-      console.error(chalk.red("Node Tunnel ishga tushirishda xatolik:"), error);
+      console.error(chalk.red("Error opening Tunnel"));
       throw error;
     }
   }
@@ -176,7 +176,7 @@ class NodeTunnel {
 
       return this.tunnelUrl;
     } catch (error) {
-      console.error(chalk.red("Error connecting to the tunnel server:"), error);
+      console.error(chalk.red("Error connecting to the tunnel server"));
       throw error;
     }
   }

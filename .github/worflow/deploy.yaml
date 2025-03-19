@@ -1,0 +1,44 @@
+name: Deploy(Sharefy)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: SSH to Server and Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            cd /home/${{ secrets.SERVER_USER }}/Projects
+
+            if [ ! -d "sharefy" ]; then
+              git clone https://github.com/farruhzoirov/sharefy.git
+            fi
+
+            cd sharefy
+            git reset --hard HEAD
+            git pull origin main
+
+            rm -rf node_modules app
+
+            npm install
+
+            npm run build
+
+            cat > .env <<EOL
+            PORT=${{ secrets.PORT }}
+            EOL
+
+            pm2 stop sharefy || true
+            pm2 start app/server/server.js --name sharefy
+            pm2 save  # Restartdan keyin ham ishlashi uchun
