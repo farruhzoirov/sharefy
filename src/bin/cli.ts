@@ -16,7 +16,6 @@ program
     "A tunnel that makes your local server publicly accessible via the internet"
   )
   .option("-p, --port <number>", "Local server port", "8000")
-  .option("-s, --subdomain <string>", "Custom subdomain name (optional)")
   .option("-d, --directory <path>", "Directory for static files", "./public")
   .option("--static", "Serve static files", false)
   .option("--server <url>", "Tunnel server URL", "http://159.89.86.13:8080")
@@ -27,7 +26,6 @@ program
     try {
       const tunnel = new NodeTunnel({
         port: parseInt(options.port, 10),
-        subdomain: options.subdomain,
         serveStatic: options.static,
         staticPath: options.directory,
         tunnelServer: options.server,

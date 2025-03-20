@@ -1,13 +1,12 @@
-import express from "express";
+import os from "os";
 import http from "http";
-import WebSocket from "ws";
-import httpProxy from "http-proxy";
-import { v4 as uuidv4 } from "uuid";
+import express from "express";
 import axios from "axios";
 import { io, Socket } from "socket.io-client";
 import fs from "fs";
 import path from "path";
 import chalk from "chalk";
+import crypto from "crypto";
 import {
   TunnelOptions,
   RegistrationResponse,
@@ -22,13 +21,19 @@ class NodeTunnel {
   private connected: boolean = false;
   private tunnelUrl: string = "";
 
+  private readonly ServerUrl = "http://159.89.86.13:8080";
+
   constructor(options: Partial<TunnelOptions> = {}) {
     this.options = {
       port: options.port || 8000,
-      subdomain: options.subdomain || uuidv4().substring(0, 8),
       serveStatic: options.serveStatic || false,
+      clientId: crypto
+        .createHash("sha256")
+        .update(os.hostname())
+        .digest("hex")
+        .substring(0, 16),
       staticPath: options.staticPath || "./public",
-      tunnelServer: options.tunnelServer || "http://159.89.86.13:8080",
+      tunnelServer: options.tunnelServer || this.ServerUrl,
     };
   }
 
@@ -36,8 +41,6 @@ class NodeTunnel {
     console.log(chalk.blue("Node Tunnel is opening..."));
 
     try {
-      const proxy = httpProxy.createProxyServer({});
-
       const app = express();
       if (this.options.serveStatic) {
         console.log(chalk.yellow(`Static file ${this.options.staticPath}`));
@@ -56,35 +59,9 @@ class NodeTunnel {
             return app(req, res);
           }
         }
-
-        proxy.web(
-          req,
-          res,
-          { target: `http://localhost:${this.options.port}` },
-          (err) => {
-            if (err) {
-              console.error(chalk.red("Proxy error:"));
-              res.statusCode = 502;
-              res.end("Proxy error: " + err.message);
-            }
-          }
-        );
-      });
-
-      const wss = new WebSocket.Server({ server: this.localServer });
-      wss.on("connection", (ws) => {
-        ws.on("message", (message) => {});
       });
 
       await this.connectToTunnelServer();
-
-      this.localServer.listen(0, () => {
-        const address = this.localServer?.address();
-        if (address && typeof address !== "string") {
-          const port = address.port;
-          console.log(chalk.green(`Local server is running on port ${port}`));
-        }
-      });
 
       return this;
     } catch (error) {
@@ -101,11 +78,11 @@ class NodeTunnel {
     );
 
     try {
-      //  -------   Registering subdomain ---------
+      //  -------   Registering clientId ---------
       const registration = await axios.post<RegistrationResponse>(
         `${this.options.tunnelServer}/register`,
         {
-          subdomain: this.options.subdomain,
+          clientId: this.options.clientId,
         }
       );
 
@@ -116,7 +93,7 @@ class NodeTunnel {
       this.socket = io(this.options.tunnelServer as string, {
         query: {
           token: registration.data.token,
-          subdomain: this.options.subdomain,
+          clientId: registration.data.clientId,
         },
       });
 
@@ -157,7 +134,7 @@ class NodeTunnel {
             body: response.data,
           } as TunnelResponse);
         } catch (error: any) {
-          console.error(chalk.red("Error redirecting request:"), error.message);
+          console.error(chalk.red("Error redirecting request:"));
           this.socket?.emit("response", {
             id: requestData.id,
             status: error.response?.status || 500,
@@ -169,7 +146,7 @@ class NodeTunnel {
 
       return this.tunnelUrl;
     } catch (error) {
-      console.error(chalk.red("Error connecting to the tunnel server"));
+      console.error(chalk.red("Error connecting to the tunnel server"), error);
       throw error;
     }
   }

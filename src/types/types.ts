@@ -4,7 +4,7 @@ import { IncomingHttpHeaders } from "http";
 
 export interface TunnelOptions {
   port: number;
-  subdomain?: string;
+  clientId?: string;
   serveStatic?: boolean;
   staticPath?: string;
   tunnelServer?: string;
@@ -12,7 +12,7 @@ export interface TunnelOptions {
 
 export interface RegistrationResponse {
   success: boolean;
-  subdomain: string;
+  clientId: string;
   token: string;
   url: string;
 }

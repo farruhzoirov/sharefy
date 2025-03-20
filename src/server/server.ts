@@ -8,43 +8,37 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+const ServerUrl = "http://159.89.86.13:8080";
+
 app.use(express.json());
 
 const clients = new Map<string, ClientInfo>();
 const pendingRequests = new Map<string, PendingRequest>();
 
 app.post("/register", (req, res) => {
-  const { subdomain } = req.body;
-  const requestedSubdomain = subdomain || uuidv4().substring(0, 8);
-
-  if (clients.has(requestedSubdomain)) {
-    return res
-      .status(400)
-      .json({ error: "This subdomain is already reserved" });
-  }
-
+  const { clientId } = req.body;
   const token = uuidv4();
-
-  clients.set(requestedSubdomain, {
-    token,
-    socket: null,
-    createdAt: new Date(),
-  });
-
-  const url = `http://159.89.86.13:8080/${requestedSubdomain}`;
+  if (!clients.has(clientId)) {
+    clients.set(clientId, {
+      token,
+      socket: null,
+      createdAt: new Date(),
+    });
+  }
+  const url = `${ServerUrl}/${clientId}`;
 
   res.json({
     success: true,
-    subdomain: requestedSubdomain,
+    clientId,
     token,
     url,
   });
 });
 
-app.get("/check/:subdomain", (req, res) => {
-  const { subdomain } = req.params;
+app.get("/check/:clientId", (req, res) => {
+  const { clientId } = req.params;
 
-  if (clients.has(subdomain)) {
+  if (clients.has(clientId)) {
     return res.json({ available: false });
   }
 
@@ -52,30 +46,24 @@ app.get("/check/:subdomain", (req, res) => {
 });
 
 io.on("connection", (socket) => {
-  const { token, subdomain } = socket.handshake.query;
+  const { token, clientId } = socket.handshake.query;
 
-  if (typeof subdomain !== "string" || typeof token !== "string") {
+  if (typeof clientId !== "string" || typeof token !== "string") {
     socket.disconnect();
     return;
   }
 
-  const client = clients.get(subdomain);
+  const client = clients.get(clientId);
   if (!client || client.token !== token) {
     socket.disconnect();
     return;
   }
 
-  console.log(`Client connected: ${subdomain}`);
+  console.log(`Client connected: ${clientId}`);
   client.socket = socket as any;
 
   socket.on("disconnect", () => {
-    console.log(`Client disconnected: ${subdomain}`);
-    if (clients.has(subdomain)) {
-      const client = clients.get(subdomain);
-      if (client) {
-        client.socket = null;
-      }
-    }
+    console.log(`Client disconnected: ${clientId}`);
   });
 
   socket.on("response", (responseData) => {
@@ -86,6 +74,7 @@ io.on("connection", (socket) => {
       res.status(responseData.status);
       Object.entries(responseData.headers).forEach(([key, value]) => {
         if (key.toLowerCase() !== "content-length") {
+          console.log(key, value);
           res.setHeader(key, value);
         }
       });
@@ -98,8 +87,8 @@ io.on("connection", (socket) => {
 
 app.use((req, res) => {
   const host = req.url || "";
-  const subdomain = host.split("/")[1];
-  const client = clients.get(subdomain);
+  const clientId = host.split("/")[1];
+  const client = clients.get(clientId);
 
   if (!client || !client.socket) {
     return res
@@ -125,7 +114,7 @@ app.use((req, res) => {
     client.socket?.emit("request", {
       id: requestId,
       method: req.method,
-      path: req.url.replace(`/${subdomain}`, ""),
+      path: req.url.replace(`/${clientId}`, ""),
       headers: req.headers,
       body: body.length > 0 ? body : null,
     });
@@ -155,10 +144,10 @@ setInterval(() => {
   });
 
   // Cleaning inactive clients (more than 24 hours)
-  clients.forEach((client, subdomain) => {
+  clients.forEach((client, clientId) => {
     const createdAt = client.createdAt.getTime();
     if (now - createdAt > 24 * 60 * 60 * 1000 && !client.socket) {
-      clients.delete(subdomain);
+      clients.delete(clientId);
     }
   });
 }, 60000);
