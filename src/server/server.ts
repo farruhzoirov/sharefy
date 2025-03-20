@@ -29,8 +29,8 @@ app.post("/register", (req, res) => {
 
   res.json({
     success: true,
-    clientId,
-    token,
+    clientId: clientId,
+    token: clients.get(clientId)?.token,
     url,
   });
 });
@@ -47,7 +47,6 @@ app.get("/check/:clientId", (req, res) => {
 
 io.on("connection", (socket) => {
   const { token, clientId } = socket.handshake.query;
-
   if (typeof clientId !== "string" || typeof token !== "string") {
     socket.disconnect();
     return;

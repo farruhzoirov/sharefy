@@ -14,9 +14,8 @@ import {
   TunnelResponse,
 } from "../types/types";
 
-class NodeTunnel {
+class SharefyTunnel {
   private options: TunnelOptions;
-  private localServer: http.Server | null = null;
   private socket: Socket | null = null;
   private connected: boolean = false;
   private tunnelUrl: string = "";
@@ -37,8 +36,8 @@ class NodeTunnel {
     };
   }
 
-  public async start(): Promise<NodeTunnel> {
-    console.log(chalk.blue("Node Tunnel is opening..."));
+  public async start(): Promise<SharefyTunnel> {
+    console.log(chalk.blue("Sharefy Tunnel is opening..."));
 
     try {
       const app = express();
@@ -46,20 +45,6 @@ class NodeTunnel {
         console.log(chalk.yellow(`Static file ${this.options.staticPath}`));
         app.use(express.static(this.options.staticPath as string));
       }
-
-      this.localServer = http.createServer((req, res) => {
-        if (this.options.serveStatic) {
-          const urlPath = req.url || "/";
-          const staticFilePath = path.join(
-            this.options.staticPath as string,
-            urlPath === "/" ? "index.html" : urlPath
-          );
-
-          if (fs.existsSync(staticFilePath)) {
-            return app(req, res);
-          }
-        }
-      });
 
       await this.connectToTunnelServer();
 
@@ -153,15 +138,9 @@ class NodeTunnel {
 
   public stop(): void {
     console.log(chalk.blue("Sharefy Tunnel is stopping..."));
-
     if (this.socket) {
       this.socket.disconnect();
     }
-
-    if (this.localServer) {
-      this.localServer.close();
-    }
-
     console.log(chalk.green("Sharefy Tunnel stopped"));
   }
 
@@ -174,4 +153,4 @@ class NodeTunnel {
   }
 }
 
-export default NodeTunnel;
+export default SharefyTunnel;

@@ -1,6 +1,6 @@
 {
   "name": "sharefy",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "description": "Sharefy npm package",
   "author": "Farruh Zoirov",
   "main": "app/tunnel/index.js",

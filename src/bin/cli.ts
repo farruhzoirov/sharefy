@@ -20,7 +20,7 @@ program
   .option("--static", "Serve static files", false)
   .option("--server <url>", "Tunnel server URL", "http://159.89.86.13:8080")
   .action(async (options) => {
-    console.log(chalk.blue("🚇 Node Tunnel - v" + packageJson.version));
+    console.log(chalk.blue("🚇 Sharefy Tunnel - v" + packageJson.version));
     console.log(chalk.yellow(`Local server: http://localhost:${options.port}`));
 
     try {
