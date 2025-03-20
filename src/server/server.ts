@@ -31,7 +31,7 @@ app.post("/register", (req, res) => {
     createdAt: new Date(),
   });
 
-  const url = `http://localhost:8080/${requestedSubdomain}`;
+  const url = `http://159.89.86.13:8080/${requestedSubdomain}`;
 
   res.json({
     success: true,
@@ -141,7 +141,7 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
-  console.log(`Tunnel server ${PORT} portida ishlamoqda`);
+  console.log(`Tunnel server running on port ${PORT}`);
 });
 
 setInterval(() => {

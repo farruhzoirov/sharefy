@@ -28,7 +28,7 @@ class NodeTunnel {
       subdomain: options.subdomain || uuidv4().substring(0, 8),
       serveStatic: options.serveStatic || false,
       staticPath: options.staticPath || "./public",
-      tunnelServer: options.tunnelServer || "http://localhost:8080",
+      tunnelServer: options.tunnelServer || "http://159.89.86.13:8080",
     };
   }
 
@@ -40,11 +40,7 @@ class NodeTunnel {
 
       const app = express();
       if (this.options.serveStatic) {
-        console.log(
-          chalk.yellow(
-            `Static fayllar ${this.options.staticPath} papkasidan servis qilinadi`
-          )
-        );
+        console.log(chalk.yellow(`Static file ${this.options.staticPath}`));
         app.use(express.static(this.options.staticPath as string));
       }
 
@@ -75,13 +71,10 @@ class NodeTunnel {
         );
       });
 
-      // const wss = new WebSocket.Server({ server: this.localServer });
-      // wss.on("connection", (ws) => {
-      //   ws.on("message", (message) => {
-      //     // WebSocket xabarlarini ham local serverga yo'naltirish
-      //     // Bu qismni implement qilish kerak
-      //   });
-      // });
+      const wss = new WebSocket.Server({ server: this.localServer });
+      wss.on("connection", (ws) => {
+        ws.on("message", (message) => {});
+      });
 
       await this.connectToTunnelServer();
 
