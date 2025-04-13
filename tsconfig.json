@@ -2,15 +2,12 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
-    "lib": ["es2020"],
-    "declaration": true,
-    "outDir": "./app",
-    "rootDir": "./src",
+    "outDir": "app",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*"],
+  "include": ["client", "server", "shared", "cli"],
   "exclude": ["node_modules", "app"]
 }

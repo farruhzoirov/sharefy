@@ -3,21 +3,19 @@
   "version": "1.1.4",
   "description": "Sharefy npm package",
   "author": "Farruh Zoirov",
-  "main": "app/tunnel/index.js",
-  "types": "app/tunnel/index.d.ts",
+  "main": "",
   "bin": {
     "sharefy": "./app/bin/cli.js"
   },
   "scripts": {
     "build": "tsc",
-    "start": "node app/index.js",
+    "start": "node app/tunnel/client.js",
     "dev": "nodemon"
   },
   "keywords": [
     "tunnel",
     "localhost",
-    "proxy",
-    "websocket"
+    "proxy"
   ],
   "dependencies": {
     "axios": "^1.5.0",
